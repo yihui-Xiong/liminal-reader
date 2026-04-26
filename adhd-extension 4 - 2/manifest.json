@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Liminal Reader",
+  "version": "0.1.0",
+  "description": "A distraction-free reading companion for neurodivergent readers. Focus modes, inline notes, and gentle pacing.",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_title": "Open Reading View",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "content_scripts": [],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["reader.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
