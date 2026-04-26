@@ -6,11 +6,11 @@ A distraction-free reading extension for Chrome. Transform any article into a cl
 
 ## Features
 
-- **Full mode** Ñ distraction-free overlay with font, line height, and theme controls
-- **Paragraph mode** Ñ one paragraph at a time with progress tracking
-- **Sentence mode** Ñ sentence-by-sentence navigation for dense material
-- **Study mode** Ñ two-phase reading (Skim to Thorough) with a check-in on exit
-- **Notes panel** Ñ floating notes linked to paragraphs, exportable as .txt
+- **Full mode**  distraction-free overlay with font, line height, and theme controls
+- **Paragraph mode**  one paragraph at a time with progress tracking
+- **Sentence mode**  sentence-by-sentence navigation for dense material
+- **Study mode**  two-phase reading (Skim to Thorough) with a check-in on exit
+- **Notes panel**  floating notes linked to paragraphs, exportable as .txt
 - Works on articles, Wikipedia, blogs, academic pages, and most readable web content
 
 ---
