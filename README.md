@@ -44,7 +44,9 @@ liminal-reader/
 
 ---
 
-## Notes
+## Privacy
+Liminal Reader collects no user data. All preferences are stored locally 
+via Chrome's synced storage and never transmitted anywhere.
 
 - Google Docs, Sheets, Slides, and Figma are not supported (canvas-based rendering)
 - Readability.js is from Mozilla's open source library: https://github.com/mozilla/readability
