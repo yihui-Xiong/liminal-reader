@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liminal Reader — Read anything, better.</title>
+  <meta name="description" content="Liminal Reader is a free Chrome extension that wraps any article in a distraction-free reading overlay. Choose Full, Paragraph, Sentence, or Study mode." />
+  <meta name="theme-color" content="#faf9f6" />
+  <link rel="icon" type="image/png" href="icon128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #faf9f6; --surface: #f3f1ec; --border: #e4e0d8;
+      --text: #1a1917; --muted: #6b6760;
+      --accent: #c86835; --accent-lt: #f7ece4; --accent-dk: #8a4220;
+      --progress: #c4a882; --white: #ffffff;
+      --ff-serif: Georgia, "Times New Roman", serif;
+      --ff-sans: "Inter", system-ui, sans-serif;
+      --ease: cubic-bezier(.22,.68,0,1.2);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--ff-sans); background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-lt); border: 1px solid #e0bca0; border-radius: 100px; padding: 4px 12px; }
+
+    /* ── Nav ── */
+    nav { position: sticky; top: 0; z-index: 100; height: 64px; background: rgba(250,249,246,.9); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+    nav .inner { max-width: 1120px; margin: 0 auto; padding: 0 40px; height: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { display: flex; align-items: center; gap: 9px; font-family: var(--ff-serif); font-size: 18px; font-weight: normal; letter-spacing: -.02em; white-space: nowrap; }
+    .nav-logo img { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; }
+    .nav-right { display: flex; align-items: center; gap: 28px; }
+    .nav-links { display: flex; gap: 24px; list-style: none; }
+    .nav-links a { font-size: 14px; color: var(--muted); transition: color .15s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn-chrome { display: inline-flex; align-items: center; gap: 8px; background: rgba(200,104,53,.85); color: white; font-size: 14px; font-weight: 500; padding: 9px 18px; border-radius: 8px; transition: background .15s, transform .1s; }
+    .btn-chrome:hover { background: var(--accent-dk); transform: translateY(-1px); }
+
+    /* ── Hero ── */
+    .hero { padding: 52px 0 60px; text-align: center; }
+    .hero-eyebrow { margin-bottom: 28px; }
+    .hero h1 { font-family: var(--ff-serif); font-size: clamp(40px,5.5vw,70px); font-weight: normal; line-height: 1.1; letter-spacing: -.03em; max-width: 820px; margin: 0 auto 24px; }
+    .hero h1 em { font-style: italic; color: var(--accent); }
+    .hero-sub { font-size: 19px; color: var(--muted); max-width: 520px; margin: 0 auto 40px; line-height: 1.65; font-weight: 300; }
+    .hero-cta { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 9px; background: rgba(200,104,53,.85); color: white; font-size: 16px; font-weight: 500; padding: 14px 26px; border-radius: 10px; transition: background .15s, transform .1s, box-shadow .15s; box-shadow: 0 2px 12px rgba(200,104,53,.25); }
+    .btn-primary:hover { background: var(--accent-dk); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,104,53,.3); }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; transition: color .15s; }
+    .btn-ghost:hover { color: var(--text); }
+    .hero-note { font-size: 13px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 72px; }
+    .hero-note::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    /* Browser mockup */
+    .browser-wrap { max-width: 1040px; margin: 0 auto; }
+    .browser-shell { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.07), 0 32px 64px rgba(0,0,0,.09); }
+    .browser-bar { background: #f0eeea; border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .browser-dots { display: flex; gap: 6px; }
+    .browser-dots span { width: 11px; height: 11px; border-radius: 50%; }
+    .browser-dots span:nth-child(1){background:#ff5f56} .browser-dots span:nth-child(2){background:#ffbd2e} .browser-dots span:nth-child(3){background:#27c93f}
+    .browser-url { flex:1; background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .browser-screen { aspect-ratio: 16/8; background: #fff; overflow: hidden; position: relative; }
+    .browser-screen img { width:100%; height:100%; object-fit:cover; }
+    .placeholder-screen { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .placeholder-screen svg { width: 48px; height: 48px; color: var(--border); }
+    .placeholder-screen p { font-size: 12px; color: var(--border); letter-spacing: .06em; text-transform: uppercase; font-weight: 500; }
+    /* Hero image hover-to-animate */
+    .hero-img-static, .hero-img-animated {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%) scale(1.08);
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: opacity .4s ease;
+    }
+    .hero-img-animated { opacity: 0; }
+    .browser-screen:hover .hero-img-static   { opacity: 0; }
+    .browser-screen:hover .hero-img-animated { opacity: 1; }
+
+    /* ── Features ── */
+    .section-divider { border: none; border-top: 1px solid var(--border); }
+    .feature-row { display: grid; grid-template-columns: 1fr 1fr; min-height: 580px; border-bottom: 1px solid var(--border); }
+    .feature-row:last-child { border-bottom: none; }
+    .feature-row:nth-child(odd)  .feature-text  { order:1; border-right: 1px solid var(--border); }
+    .feature-row:nth-child(odd)  .feature-visual { order:2; }
+    .feature-row:nth-child(even) .feature-text  { order:2; border-left: 1px solid var(--border); }
+    .feature-row:nth-child(even) .feature-visual { order:1; }
+    .feature-text { padding: 72px 64px; display: flex; flex-direction: column; justify-content: center; }
+    .feature-num { font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+    .feature-text h2 { font-family: var(--ff-serif); font-size: clamp(24px,2.6vw,36px); font-weight: normal; line-height: 1.15; letter-spacing: -.025em; margin-bottom: 18px; }
+    .feature-text > p { font-size: 15px; line-height: 1.75; color: var(--muted); margin-bottom: 14px; font-weight: 300; }
+    .feature-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pill { font-size: 12px; font-weight: 500; color: var(--accent-dk); background: var(--accent-lt); border: 1px solid #e0bca0; border-radius: 100px; padding: 4px 12px; }
+    .feature-visual { background: var(--surface); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+    /* ── Mockup crossfade on hover ──
+       Both stages sit in the same grid cell.
+       Default: visual visible, text hidden.
+       On hover: visual fades out, text fades in — pure CSS, no JS.
+    */
+    .mockup-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 40px;
+      width: 100%;
+    }
+
+    .mockup-hint {
+      font-size: 11px;
+      color: #c0bbb4;
+      letter-spacing: .03em;
+      text-align: center;
+      margin-top: 12px;
+      transition: opacity .5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mockup-stages {
+      display: grid;
+      width: 340px;
+      cursor: default;
+    }
+
+    /* Both stages share the same cell — no layout shift ever */
+    .mockup-stage {
+      grid-column: 1;
+      grid-row: 1;
+      width: 100%;
+      transition: opacity .5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Visual is on top by default */
+    .mockup-stage-visual  { opacity: 1; z-index: 1; }
+    .mockup-stage-text    { opacity: 0; }
+
+    /* On hover: swap */
+    .mockup-stages:hover .mockup-stage-visual { opacity: 0; }
+    .mockup-stages:hover .mockup-stage-text   { opacity: 1; }
+    .mockup-stages:hover + .mockup-hint       { opacity: 0; }
+
+    /* ── Mini reader shell ── */
+    .mini-reader { background: #fffef9; border: 1px solid #e8e4dc; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.09); font-family: var(--ff-sans); }
+    .mini-toolbar { background: #fffef9; border-bottom: 1px solid #e8e4dc; padding: 9px 12px; display: flex; align-items: center; gap: 5px; }
+    .mini-title { flex:1; font-size: 10px; color: #aaa; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .mini-mode-btn { font-size: 10px; padding: 2px 7px; border: 1px solid #d0ccc4; border-radius: 4px; background: white; color: #888; white-space: nowrap; }
+    .mini-mode-btn.active { background: #e8e0d4; border-color: #999; color: #444; font-weight: 600; }
+    .mini-mode-btn.study { background: #f4faf0; border-color: #b8d4a0; color: #5a7a3a; }
+    .mini-mode-btn.study.active { background: #d4ecc4; border-color: #5a7a3a; font-weight: 600; color: #2e5e2e; }
+    .mini-body { padding: 14px 16px 16px; }
+    .ml { height: 9px; border-radius: 3px; background: #e0dbd5; margin-bottom: 7px; }
+    .ml.dark { background: #1a1917; }
+    .ml.dim  { opacity: .2; }
+    .mini-progress-bar { height: 3px; background: #e8e4dc; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+    .mini-progress-fill { height: 100%; background: #c4a882; border-radius: 2px; }
+    .mini-progress-label { font-size: 10px; color: #bbb; margin-bottom: 5px; }
+    .mini-nav-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+    .mini-nav-btn { font-size: 10px; padding: 4px 10px; border: 1px solid #d0ccc4; border-radius: 4px; background: white; color: #666; }
+    .mini-nav-btn.primary { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+    .mini-nav-counter { font-size: 10px; color: #bbb; flex:1; text-align: center; }
+    .mini-phase-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-bottom: 10px; }
+    .mini-phase-pill.skim     { background: #fdf0c4; color: #7a6030; }
+    .mini-phase-pill.thorough { background: #d4ecc4; color: #2e5e2e; }
+
+    /* ── Text preview face ── */
+    .text-preview { background: #fffef9; border: 1px solid #e8e4dc; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.09); font-family: Georgia, serif; }
+    .text-preview-toolbar { background: #fffef9; border-bottom: 1px solid #e8e4dc; padding: 9px 12px; display: flex; align-items: center; gap: 5px; }
+    .tp-title { flex:1; font-size: 10px; color: #aaa; font-family: var(--ff-sans); }
+    .tp-btn { font-size: 10px; padding: 2px 7px; border: 1px solid #d0ccc4; border-radius: 4px; background: white; color: #888; font-family: var(--ff-sans); }
+    .tp-btn.active { background: #e8e0d4; border-color: #999; color: #444; font-weight: 600; }
+    .tp-btn.study { background: #f4faf0; border-color: #b8d4a0; color: #5a7a3a; }
+    .tp-btn.study.active { background: #d4ecc4; border-color: #5a7a3a; }
+    /* Fixed height — both stages always the same size, overflow hidden */
+    .mini-body, .text-preview-body, .spc-body { height: 172px; overflow: hidden; }
+    .text-preview-body { padding: 14px 16px 16px; }
+    .tp-title2 { font-size: 12px; font-weight: 700; color: #111; margin-bottom: 3px; }
+    .tp-byline { font-size: 9px; color: #aaa; font-style: italic; margin-bottom: 10px; font-family: var(--ff-sans); }
+    .tp-para { font-size: 11px; line-height: 1.65; color: #1a1a1a; margin-bottom: 9px; }
+    .tp-para.dim { opacity: .2; }
+    .tp-progress-label { font-size: 9px; color: #bbb; margin-bottom: 4px; font-family: var(--ff-sans); }
+    .tp-progress-bar { height: 3px; background: #e8e4dc; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+    .tp-progress-fill { height: 100%; background: #c4a882; border-radius: 2px; }
+    .tp-nav-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+    .tp-nav-btn { font-size: 10px; padding: 4px 10px; border: 1px solid #d0ccc4; border-radius: 4px; background: white; color: #666; font-family: var(--ff-sans); }
+    .tp-nav-btn.primary { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+    .tp-nav-counter { font-size: 10px; color: #bbb; flex:1; text-align: center; font-family: var(--ff-sans); }
+    .tp-phase-pill { display: inline-block; font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-bottom: 10px; font-family: var(--ff-sans); }
+    .tp-phase-pill.skim     { background: #fdf0c4; color: #7a6030; }
+    .tp-phase-pill.thorough { background: #d4ecc4; color: #2e5e2e; }
+    .tp-key { display: inline-block; background: #f0ede8; border: 1px solid #d0ccc4; border-radius: 3px; padding: 1px 4px; font-size: 9px; color: #888; font-family: var(--ff-sans); }
+
+    /* ── Study phases block ── */
+    .study-phases { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 24px; }
+    .study-phase-block { padding: 20px 22px; }
+    .study-phase-block:first-child { border-right: 1px solid var(--border); }
+    .study-phase-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .phase-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .phase-dot.skim     { background: #d4a840; }
+    .phase-dot.thorough { background: #5a7a3a; }
+    .study-phase-block h4 { font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+    .study-phase-block p  { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+    .study-phase-block ul { padding-left: 15px; }
+    .study-phase-block li { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .exit-checkin-callout { margin-top: 20px; padding: 14px 18px; background: var(--accent-lt); border: 1px solid #e0bca0; border-radius: 10px; font-size: 13px; color: #3d5428; line-height: 1.65; }
+
+    /* ── Study section (full-width, two-phase) ── */
+    .study-section {
+      border-top: 1px solid var(--border);
+      padding: 80px 40px 72px;
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .study-section-header {
+      max-width: 640px;
+      margin-bottom: 52px;
+    }
+    .study-section-header .feature-num { margin-bottom: 16px; }
+    .study-section-header h2 { font-family: var(--ff-serif); font-size: clamp(24px,2.6vw,36px); font-weight: normal; line-height: 1.15; letter-spacing: -.025em; margin-bottom: 14px; }
+    .study-section-header p { font-size: 15px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+    .study-phase-cards {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .study-phase-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .study-phase-card:first-child { border-right: 1px solid var(--border); }
+
+    /* spc-stages: same crossfade system as feature mockups */
+    .spc-stages {
+      width: 100%;
+    }
+
+    .spc-shell {
+      background: #fffef9;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      font-family: var(--ff-sans);
+    }
+
+    /* Real-text skim preview */
+    .spc-text-para {
+      margin-bottom: 10px;
+      font-family: Georgia, serif;
+      font-size: 10.5px;
+      line-height: 1.6;
+    }
+    .spc-text-first { color: #1a1917; }
+    .spc-text-rest  { color: #1a1917; opacity: .2; }
+
+    /* Real-text thorough preview */
+    .spc-text-dim {
+      font-family: Georgia, serif;
+      font-size: 10.5px;
+      line-height: 1.6;
+      color: #1a1917;
+      opacity: .18;
+      margin-bottom: 8px;
+    }
+    .spc-text-focus {
+      font-family: Georgia, serif;
+      font-size: 10.5px;
+      line-height: 1.6;
+      color: #1a1917;
+      margin-bottom: 8px;
+    }
+
+    /* spc-body padding */
+    .spc-body { padding: 14px 16px 14px; }
+
+    .spc-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      background: #f5f3ef;
+      border-bottom: 1px solid #e8e4dc;
+    }
+    .spc-title { flex:1; font-size: 10px; color: #aaa; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .spc-btn { font-size: 9px; padding: 2px 6px; border: 1px solid #d0ccc4; border-radius: 3px; background: white; color: #999; }
+    .spc-btn.study-active { background: #d4ecc4; border-color: #5a7a3a; color: #2e5e2e; font-weight: 600; }
+
+    .spc-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .skim-pill     { background: #fdf0c4; color: #7a6030; }
+    .thorough-pill { background: #d4ecc4; color: #2e5e2e; }
+
+    .spc-para { margin-bottom: 10px; }
+    .spc-para:last-of-type { margin-bottom: 12px; }
+
+    .spc-line {
+      height: 8px;
+      border-radius: 3px;
+      background: #e0dbd5;
+      margin-bottom: 5px;
+    }
+    .spc-line.full  { width: 100%; }
+    .spc-line.w88   { width: 88%; }
+    .spc-line.w80   { width: 80%; }
+    .spc-line.w72   { width: 72%; }
+    .spc-line.w70   { width: 70%; }
+    .spc-line.w65   { width: 65%; }
+    .spc-line.w60   { width: 60%; }
+    .spc-line.w55   { width: 55%; }
+    .spc-line.dark  { background: #1a1917; }
+    .spc-line.dim   { opacity: .18; }
+
+    /* Thorough: dim paragraphs vs focused */
+    .dim-para .spc-line { opacity: .18; }
+    .focused-para { margin-bottom: 10px; }
+    .focused-para .spc-line { opacity: 1; background: #1a1917; }
+
+    .spc-hint {
+      font-size: 10px;
+      color: #bbb;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .spc-key {
+      display: inline-block;
+      background: #f0ede8;
+      border: 1px solid #d8d4cc;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 9px;
+      color: #888;
+    }
+
+    /* Phase card text half */
+    .study-phase-card-text {
+      padding: 28px 28px 32px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .study-phase-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+      align-self: flex-start;
+    }
+    .skim-badge     { background: #fdf0c4; color: #7a6030; border: 1px solid #e8d48a; }
+    .thorough-badge { background: #d4ecc4; color: #2e5e2e; border: 1px solid #a8d490; }
+
+    .study-phase-card-text h3 { font-family: var(--ff-serif); font-size: clamp(16px,1.6vw,20px); font-weight: normal; line-height: 1.3; letter-spacing: -.02em; margin-bottom: 12px; }
+    .study-phase-card-text p { font-size: 14px; color: var(--muted); line-height: 1.7; font-weight: 300; margin-bottom: 18px; }
+
+    .study-phase-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+    .study-phase-list li { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .spl-key { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--text); font-family: var(--ff-sans); white-space: nowrap; }
+    .spl-icon { font-size: 13px; width: 20px; text-align: center; }
+
+    /* Arrow between phases */
+    .study-phase-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 12px;
+      color: var(--border);
+      flex-shrink: 0;
+      font-size: 11px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* Exit check-in strip */
+    .study-checkin-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 24px;
+      padding: 20px 28px;
+      background: var(--accent-lt);
+      border: 1px solid #e0bca0;
+      border-radius: 12px;
+    }
+
+    .study-checkin-icon {
+      width: 38px;
+      height: 38px;
+      background: white;
+      border: 1px solid #e0bca0;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    .study-checkin-text {
+      flex: 1;
+      font-size: 14px;
+      color: #3d5428;
+      line-height: 1.65;
+    }
+    .study-checkin-text strong { font-weight: 600; }
+
+    .study-checkin-mock {
+      background: white;
+      border: 1px solid #e0bca0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      flex-shrink: 0;
+      min-width: 200px;
+    }
+    .scm-label { font-size: 11px; font-weight: 600; color: #3d5428; margin-bottom: 10px; }
+    .scm-thumbs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .scm-thumb { flex:1; text-align: center; font-size: 11px; padding: 6px 4px; border: 1px solid #e0bca0; border-radius: 7px; color: #5a7a5a; background: var(--accent-lt); }
+    .scm-thumb.active { background: white; border-color: #5a7a3a; color: #2e5e2e; font-weight: 600; box-shadow: 0 1px 4px rgba(90,122,58,.12); }
+    .scm-note { font-size: 10px; color: #aaa; border-top: 1px solid #e8f0e0; padding-top: 8px; margin-top: 2px; }
+
+    @media (max-width: 920px) {
+      .study-section { padding: 56px 24px 56px; }
+      .study-phase-cards { flex-direction: column; }
+      .study-phase-card:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+      .study-phase-arrow { flex-direction: row; padding: 12px 0; }
+      .study-checkin-row { flex-direction: column; align-items: flex-start; }
+      .study-checkin-mock { width: 100%; }
+    }
+
+    /* ── Notes ── */
+    .notes-section { padding: 120px 0; border-top: 1px solid var(--border); }
+    .notes-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .notes-text .chip { margin-bottom: 28px; }
+    .notes-text h2 { font-family: var(--ff-serif); font-size: clamp(30px,3vw,44px); font-weight: normal; line-height: 1.15; letter-spacing: -.025em; margin-bottom: 24px; }
+    .notes-text p { font-size: 16px; line-height: 1.75; color: var(--muted); margin-bottom: 16px; font-weight: 300; }
+    .notes-detail { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+    .notes-item { display: flex; gap: 14px; align-items: flex-start; }
+    .notes-item-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--accent-lt); border: 1px solid #e0bca0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .notes-item-icon svg { width: 16px; height: 16px; color: var(--accent); }
+    .notes-item-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .notes-item-body p { font-size: 14px; color: var(--muted); margin: 0; }
+    .notes-panel-mock { background: var(--white); border: 1px solid #e8e4dc; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 32px rgba(0,0,0,.09); }
+    .npm-header { padding: 12px 16px; border-bottom: 1px solid #e8e4dc; display: flex; align-items: center; justify-content: space-between; }
+    .npm-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .npm-badge { font-size: 11px; font-weight: 500; color: white; background: var(--accent); border-radius: 100px; padding: 1px 7px; }
+    .npm-actions { display: flex; gap: 6px; }
+    .npm-btn { font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; }
+    .npm-entry { padding: 14px 16px; border-bottom: 1px solid #f0ede8; }
+    .npm-entry:last-child { border-bottom: none; }
+    .npm-ref { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+    .npm-quote { font-family: var(--ff-serif); font-size: 12px; font-style: italic; color: var(--muted); line-height: 1.5; padding: 6px 10px; background: var(--surface); border-left: 2px solid var(--accent); border-radius: 0 3px 3px 0; margin-bottom: 7px; }
+    .npm-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+    .npm-meta { margin-top: 6px; font-size: 10px; color: var(--border); }
+    .npm-input-area { border-top: 1px solid #e8e4dc; }
+    .npm-textarea-mock { width: 100%; padding: 10px 16px; font-size: 12px; color: #bbb; font-family: var(--ff-serif); background: #fffef9; border-bottom: 1px solid #f0ede8; min-height: 40px; }
+    .npm-footer { padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .npm-link-btn { font-size: 11px; color: var(--accent); }
+    .npm-save-btn { font-size: 11px; padding: 5px 12px; background: #2a2a2a; color: white; border-radius: 6px; }
+
+    /* ── Themes ── */
+    .themes-section { padding: 100px 0; border-top: 1px solid var(--border); text-align: center; }
+    .themes-section .chip { margin-bottom: 24px; }
+    .themes-section h2 { font-family: var(--ff-serif); font-size: clamp(28px,3vw,42px); font-weight: normal; letter-spacing: -.025em; margin-bottom: 14px; }
+    .themes-section .lead { font-size: 16px; color: var(--muted); max-width: 460px; margin: 0 auto 64px; font-weight: 300; }
+    .themes-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
+    .theme-card { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: transform .2s var(--ease), box-shadow .2s; }
+    .theme-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
+    .theme-preview { padding: 18px 16px 14px; display: flex; flex-direction: column; }
+    .theme-preview-toolbar { display: flex; align-items: center; gap: 4px; padding: 7px 10px; border-radius: 5px 5px 0 0; margin: -18px -16px 12px; border-bottom: 1px solid; }
+    .theme-preview-title { flex:1; font-size: 8px; }
+    .theme-preview-btn { font-size: 8px; padding: 2px 5px; border-radius: 3px; border: 1px solid; }
+    .theme-preview-btn.active { font-weight: 700; }
+    .ttl { height: 7px; border-radius: 3px; margin-bottom: 6px; }
+    .tw55{width:55%} .tw78{width:78%} .tw100{width:100%}
+    .theme-progress { height: 2px; border-radius: 1px; margin: 8px 0 0; overflow: hidden; }
+    .theme-progress-fill { height:100%; width:42%; border-radius:1px; background:#c4a882; }
+    .theme-meta { padding: 10px 14px; border-top: 1px solid; }
+    .theme-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .theme-desc { font-size: 11px; }
+    .t-warm .theme-preview{background:#fffef9} .t-warm .theme-preview-toolbar{background:#fffef9;border-color:#e8e4dc} .t-warm .theme-preview-title{color:#aaa} .t-warm .theme-preview-btn{background:white;border-color:#d0ccc4;color:#888} .t-warm .theme-preview-btn.active{background:#e8e0d4;border-color:#999;color:#444} .t-warm .ttl{background:#e8e4dc} .t-warm .theme-progress{background:#e8e4dc} .t-warm .theme-meta{background:white;border-color:var(--border)} .t-warm .theme-name{color:var(--text)} .t-warm .theme-desc{color:var(--muted)}
+    .t-white .theme-preview{background:#fff} .t-white .theme-preview-toolbar{background:#fff;border-color:#e0e0e0} .t-white .theme-preview-title{color:#bbb} .t-white .theme-preview-btn{background:white;border-color:#ddd;color:#999} .t-white .theme-preview-btn.active{background:#ebebeb;border-color:#aaa;color:#555} .t-white .ttl{background:#e4e4e4} .t-white .theme-progress{background:#e4e4e4} .t-white .theme-meta{background:white;border-color:#ddd} .t-white .theme-name{color:var(--text)} .t-white .theme-desc{color:var(--muted)}
+    .t-green .theme-preview{background:#f0f7f0} .t-green .theme-preview-toolbar{background:#e8f3e8;border-color:#c8dfc8} .t-green .theme-preview-title{color:#8aaa8a} .t-green .theme-preview-btn{background:white;border-color:#c8dfc8;color:#6a8c6a} .t-green .theme-preview-btn.active{background:#d4ecc4;border-color:#5a7a3a;color:#2e5e2e} .t-green .ttl{background:#c8dfc8} .t-green .theme-progress{background:#c8dfc8} .t-green .theme-meta{background:white;border-color:#c8dfc8} .t-green .theme-name{color:#1a2e1a} .t-green .theme-desc{color:#5a7a5a}
+    .t-dark .theme-preview{background:#1a1a1a} .t-dark .theme-preview-toolbar{background:#242424;border-color:#3a3a3a} .t-dark .theme-preview-title{color:#666} .t-dark .theme-preview-btn{background:#2e2e2e;border-color:#4a4a4a;color:#aaa} .t-dark .theme-preview-btn.active{background:#444;border-color:#666;color:#e8e6e0} .t-dark .ttl{background:#3a3a3a} .t-dark .theme-progress{background:#3a3a3a} .t-dark .theme-meta{background:#242424;border-color:#3a3a3a} .t-dark .theme-name{color:#e8e6e0} .t-dark .theme-desc{color:#888}
+
+    .settings-row { display: flex; gap: 40px; align-items: center; margin-top: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px 48px; }
+    .settings-row-text { flex:1; }
+    .settings-row-text h3 { font-family: var(--ff-serif); font-size: 26px; font-weight: normal; letter-spacing: -.02em; margin-bottom: 12px; }
+    .settings-row-text p { font-size: 15px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+    .settings-controls { flex:1; display: flex; flex-direction: column; gap: 16px; }
+    .setting-item { display: flex; align-items: center; gap: 16px; }
+    .setting-label { font-size: 13px; color: var(--muted); width: 80px; flex-shrink: 0; }
+    .setting-track { flex:1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
+    .setting-fill { position: absolute; left:0; top:0; height:100%; background:#c4a882; border-radius:2px; }
+    .setting-thumb { position: absolute; top:50%; width:14px; height:14px; background:white; border:2px solid #c4a882; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+    .setting-value { font-size: 12px; color: var(--muted); width: 36px; text-align: right; }
+
+    /* ── Footer CTA ── */
+    .footer-cta { padding: 120px 0; border-top: 1px solid var(--border); text-align: center; }
+    .footer-cta h2 { font-family: var(--ff-serif); font-size: clamp(32px,4vw,56px); font-weight: normal; line-height: 1.1; letter-spacing: -.03em; margin: 0 auto 20px; max-width: 680px; }
+    .footer-cta p { font-size: 18px; color: var(--muted); margin-bottom: 44px; font-weight: 300; }
+    .footer-cta-actions { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .github-link { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; transition: border-color .15s, color .15s; }
+    .github-link:hover { border-color: var(--text); color: var(--text); }
+
+    footer { padding: 32px 0; border-top: 1px solid var(--border); }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; }
+    .footer-brand { display: flex; align-items: center; gap: 8px; font-family: var(--ff-serif); font-size: 15px; color: var(--muted); }
+    .footer-brand img { width: 22px; height: 22px; border-radius: 5px; }
+    .footer-links { display: flex; gap: 24px; list-style: none; }
+    .footer-links a { font-size: 13px; color: var(--muted); transition: color .15s; }
+    .footer-links a:hover { color: var(--text); }
+
+    .reveal { opacity:0; transform:translateY(22px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.visible { opacity:1; transform:none; }
+
+
+    /* ── Accessibility ── */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      background: var(--text);
+      color: var(--white);
+      padding: 10px 18px;
+      border-radius: 0 0 8px 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      transition: top .15s;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* Visible focus rings for keyboard nav */
+    a:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* Reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+    }
+
+
+    /* Touch targets */
+    @media (hover: none) {
+      .btn-primary, .btn-chrome { min-height: 48px; }
+      .nav-links a { min-height: 44px; display: flex; align-items: center; }
+      /* Hero: autoplay GIF directly */
+      .hero-img-static   { display: none; }
+      .hero-img-animated { opacity: 1; }
+      /* Mockups: show text version by default on touch, tap to see visual */
+      .mockup-stage-visual { opacity: 0; }
+      .mockup-stage-text   { opacity: 1; }
+      .mockup-stages.touched .mockup-stage-visual { opacity: 1; }
+      .mockup-stages.touched .mockup-stage-text   { opacity: 0; }
+      .mockup-hint { display: none; }
+    }
+
+    /* ── Tablet ── */
+    @media (max-width: 920px) {
+      .container { padding: 0 24px; }
+      nav .inner { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 40px 0 44px; }
+      .hero-sub { font-size: 17px; }
+      .feature-row { grid-template-columns: 1fr; min-height: auto; }
+      .feature-row:nth-child(odd) .feature-text  { order:1; border-right:none !important; border-bottom:1px solid var(--border); }
+      .feature-row:nth-child(even) .feature-text { order:1; border-left:none !important; border-bottom:1px solid var(--border); }
+      .feature-row .feature-visual { order:2; min-height:280px; }
+      .feature-text { padding: 40px 28px; }
+      .notes-inner { grid-template-columns: 1fr; gap: 40px; }
+      .themes-grid { grid-template-columns: repeat(2,1fr); gap: 14px; }
+      .settings-row { flex-direction: column; padding: 28px; gap: 24px; }
+      .study-section { padding: 56px 24px; }
+      .study-phase-cards { flex-direction: column; }
+      .study-phase-card:first-child { border-right:none; border-bottom:1px solid var(--border); }
+      .study-phase-arrow { flex-direction: row; padding: 12px 0; }
+      .study-phase-card-text { padding: 20px 20px 24px; }
+      .study-checkin-row { flex-direction: column; align-items: flex-start; }
+      .study-checkin-mock { width: 100%; }
+      .footer-inner { flex-direction: column; gap: 20px; text-align: center; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+      .mockup-stages { width: 300px; }
+      .notes-section { padding: 80px 0; }
+      .themes-section { padding: 72px 0; }
+      .footer-cta { padding: 80px 0; }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+      .container { padding: 0 18px; }
+      nav .inner { padding: 0 18px; }
+      .nav-logo { font-size: 15px; }
+      .btn-chrome { font-size: 12px; padding: 8px 13px; }
+      .hero { padding: 28px 0 36px; }
+      .hero h1 { font-size: clamp(30px, 9vw, 48px); margin-bottom: 18px; }
+      .hero-sub { font-size: 15px; max-width: 100%; margin-bottom: 28px; }
+      .hero-cta { gap: 10px; margin-bottom: 12px; }
+      .btn-primary { font-size: 14px; padding: 12px 20px; }
+      .hero-note { font-size: 12px; margin-bottom: 48px; }
+      .browser-wrap { border-radius: 10px; }
+      .feature-text { padding: 32px 20px; }
+      .feature-text h2 { font-size: clamp(20px, 6vw, 28px); }
+      .feature-text > p { font-size: 14px; }
+      .feature-pills { gap: 6px; }
+      .pill { font-size: 11px; padding: 3px 10px; }
+      .feature-row .feature-visual { min-height: 220px; }
+      .mockup-container { padding: 24px 16px; }
+      .mockup-stages { width: 100%; max-width: 300px; }
+      .notes-section { padding: 60px 0; }
+      .notes-text h2 { font-size: clamp(24px, 7vw, 36px); }
+      .notes-text p { font-size: 14px; }
+      .notes-detail { gap: 12px; }
+      .notes-item-body h4 { font-size: 13px; }
+      .notes-item-body p { font-size: 13px; }
+      .themes-section { padding: 56px 0; }
+      .themes-section h2 { font-size: clamp(22px, 7vw, 32px); }
+      .themes-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .theme-meta { padding: 8px 12px; }
+      .theme-name { font-size: 12px; }
+      .theme-desc { font-size: 10px; }
+      .settings-row { padding: 22px 18px; }
+      .settings-row-text h3 { font-size: 20px; }
+      .settings-row-text p { font-size: 13px; }
+      .study-section { padding: 44px 18px; }
+      .study-section-header h2 { font-size: clamp(20px, 6vw, 28px); }
+      .study-section-header p { font-size: 14px; }
+      .study-phase-card-text h3 { font-size: 16px; }
+      .study-phase-card-text p { font-size: 13px; }
+      .study-phase-list li { font-size: 12px; }
+      .footer-cta { padding: 60px 0; }
+      .footer-cta h2 { font-size: clamp(24px, 8vw, 40px); }
+      .footer-cta p { font-size: 15px; margin-bottom: 28px; }
+      .footer-cta-actions { flex-direction: column; gap: 10px; }
+      .github-link { justify-content: center; }
+      footer { padding: 24px 0; }
+      .footer-brand { font-size: 13px; }
+      .footer-links { gap: 16px; }
+      .footer-links a { font-size: 12px; }
+    }
+
+    /* ── Small phones ── */
+    @media (max-width: 380px) {
+      .hero h1 { font-size: 28px; }
+      .btn-primary { width: 100%; justify-content: center; }
+      .btn-ghost { width: 100%; justify-content: center; }
+      .themes-grid { grid-template-columns: 1fr; }
+      .study-phase-card-text { padding: 16px; }
+      .browser-wrap { padding: 0; }
+      .browser-shell { border-radius: 10px; }
+      .hero-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Nav -->
+<nav aria-label="Main navigation">
+  <div class="inner">
+    <a href="#" class="nav-logo" aria-label="Liminal Reader — back to top">
+      <img src="icon128.png" alt="Liminal Reader icon" />
+      Liminal Reader
+    </a>
+    <div class="nav-right">
+      <ul class="nav-links" role="list">
+        <li><a href="#features">Modes</a></li>
+        <li><a href="#notes">Notes</a></li>
+        <li><a href="#themes">Themes</a></li>
+        <li><a href="https://github.com/yihui-Xiong/liminal-reader" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      </ul>
+      <a href="https://chromewebstore.google.com/detail/lneiindanebcfiodkaiminhjdjdnadfa?utm_source=item-share-cb" target="_blank" class="btn-chrome" aria-label="Add Liminal Reader to Chrome">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="12" r="4" fill="white"/><path d="M12 8h8.66a10 10 0 1 0-16.8 9.26L8 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M7.86 17.26a10 10 0 0 0 12.8-5.26H12l-4.14 5.26z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Add to Chrome
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="main-content">
+  <div class="container">
+    <div class="hero-eyebrow reveal"><span class="chip">Free Chrome Extension · Open Source</span></div>
+    <h1 class="reveal">Read anything, <em>the way it deserves</em> to be read.</h1>
+    <p class="hero-sub reveal">Liminal Reader wraps any article or long-form page in a clean overlay. Pick your mode, your theme, your pace — and actually finish what you opened.</p>
+    <div class="hero-cta reveal">
+      <a href="https://chromewebstore.google.com/detail/lneiindanebcfiodkaiminhjdjdnadfa?utm_source=item-share-cb" target="_blank" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4" fill="white"/><path d="M12 8h8.66a10 10 0 1 0-16.8 9.26L8 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M7.86 17.26a10 10 0 0 0 12.8-5.26H12l-4.14 5.26z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Add to Chrome — it's free
+      </a>
+      <a href="https://github.com/yihui-Xiong/liminal-reader" target="_blank" class="btn-ghost">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="15" height="15"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <p class="hero-note reveal">No account required · Works on any article or long-form page</p>
+    <div class="browser-wrap reveal" style="transition-delay:.1s">
+      <div class="browser-shell">
+        <div class="browser-bar">
+          <div class="browser-dots"><span></span><span></span><span></span></div>
+          <div class="browser-url">
+            <svg viewBox="0 0 14 14" fill="none" width="12" height="12" style="color:#c86835"><path d="M7 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z" stroke="currentColor" stroke-width="1.2"/><path d="M5 7c0-2.5 1-4.5 2-4.5S9 4.5 9 7s-1 4.5-2 4.5S5 9.5 5 7z" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 7h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            theeducatoronline.com/k12/news/teachers-urged-to-focus-on-cognitive-load
+          </div>
+        </div>
+        <div class="browser-screen" style="background:#fff;">
+          <img src="hero.png" class="hero-img-static" alt="The Educator article before Liminal Reader is activated" />
+          <img src="hero.gif"      class="hero-img-animated" alt="Liminal Reader activating on The Educator article, showing distraction-free reading mode" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider" />
+
+<section id="features" aria-label="Features">
+
+  <!-- Mode 01: Full -->
+  <div class="feature-row reveal">
+    <div class="feature-text">
+      <p class="feature-num">Mode 01</p>
+      <h2>Full Mode — the whole article, nothing else.</h2>
+      <p>One click and everything vanishes: sidebars, ads, cookie banners, navigation. What remains is the text, typeset cleanly at whatever size and width suits you.</p>
+      <p>Font size and line height persist across sessions via Chrome's synced storage — your environment is always exactly how you left it.</p>
+      <div class="feature-pills">
+        <span class="pill">Distraction-free overlay</span>
+        <span class="pill">Font size (14–28px)</span>
+        <span class="pill">Line height (1.4–2.4)</span>
+        <span class="pill">Settings remembered</span>
+      </div>
+    </div>
+    <div class="feature-visual">
+      <!-- <img src="screenshots/full-mode.png" alt="Full Mode" /> -->
+      <div class="mockup-container">
+        <div class="mockup-stages">
+          <div class="mockup-stage mockup-stage-visual">
+            <div class="mini-reader">
+              <div class="mini-toolbar">
+                <span class="mini-title">The Attention Merchants — Tim Wu</span>
+                <span class="mini-mode-btn active">Full</span><span class="mini-mode-btn">Para</span><span class="mini-mode-btn">Sent</span><span class="mini-mode-btn study">Study</span>
+              </div>
+              <div class="mini-body">
+                <div class="ml dark" style="width:80%;height:11px;margin-bottom:12px;"></div>
+                <div class="ml" style="width:100%;"></div><div class="ml" style="width:88%;"></div><div class="ml" style="width:100%;"></div><div class="ml" style="width:60%;margin-bottom:12px;"></div>
+                <div class="ml" style="width:100%;"></div><div class="ml" style="width:72%;"></div><div class="ml" style="width:100%;"></div><div class="ml" style="width:52%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-stage mockup-stage-text">
+            <div class="text-preview">
+              <div class="text-preview-toolbar">
+                <span class="tp-title">The Attention Merchants — Tim Wu</span>
+                <span class="tp-btn active">Full</span><span class="tp-btn">Para</span><span class="tp-btn">Sent</span><span class="tp-btn study">Study</span>
+              </div>
+              <div class="text-preview-body">
+                <div class="tp-title2">The Attention Merchants</div>
+                <div class="tp-byline">Tim Wu · Knopf, 2016</div>
+                <p class="tp-para">In the beginning, there was space to think. The newspapers of the early nineteenth century carried almost no advertising — dense with text, subsidized by political parties or sold at prices only the wealthy could afford.</p>
+                <p class="tp-para">It was Benjamin Day who first saw what attention was worth. In 1833 he slashed the price of the Sun to a penny and recouped the loss by selling readers to advertisers. The model stuck.</p>
+              </div>
+            </div>
+          </div>
+          <p class="mockup-hint">Hover to preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode 02: Paragraph -->
+  <div class="feature-row reveal">
+    <div class="feature-text">
+      <p class="feature-num">Mode 02</p>
+      <h2>Paragraph Mode — one thought at a time.</h2>
+      <p>Long articles feel like walls. Paragraph Mode breaks them into discrete units — one fills the screen. A warm amber progress bar shows exactly where you are.</p>
+      <p>Step forward or back with Next / Back. Put your phone down mid-article and pick up exactly where you left off.</p>
+      <div class="feature-pills">
+        <span class="pill">One paragraph at a time</span>
+        <span class="pill">Progress bar</span>
+        <span class="pill">Back / Next</span>
+        <span class="pill">Position memory</span>
+      </div>
+    </div>
+    <div class="feature-visual">
+      <!-- <img src="screenshots/paragraph-mode.png" alt="Paragraph Mode" /> -->
+      <div class="mockup-container">
+        <div class="mockup-stages">
+          <div class="mockup-stage mockup-stage-visual">
+            <div class="mini-reader">
+              <div class="mini-toolbar">
+                <span class="mini-title">The Attention Merchants — Tim Wu</span>
+                <span class="mini-mode-btn">Full</span><span class="mini-mode-btn active">Para</span><span class="mini-mode-btn">Sent</span><span class="mini-mode-btn study">Study</span>
+              </div>
+              <div class="mini-body">
+                <div class="mini-progress-label">Paragraph 9 of 21</div>
+                <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:42%"></div></div>
+                <div class="ml" style="width:100%;"></div><div class="ml" style="width:88%;"></div><div class="ml" style="width:100%;"></div><div class="ml" style="width:62%;"></div>
+                <div class="mini-nav-row">
+                  <button class="mini-nav-btn">← Back</button>
+                  <span class="mini-nav-counter">¶ 9 / 21</span>
+                  <button class="mini-nav-btn primary">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-stage mockup-stage-text">
+            <div class="text-preview">
+              <div class="text-preview-toolbar">
+                <span class="tp-title">The Attention Merchants — Tim Wu</span>
+                <span class="tp-btn">Full</span><span class="tp-btn active">Para</span><span class="tp-btn">Sent</span><span class="tp-btn study">Study</span>
+              </div>
+              <div class="text-preview-body">
+                <div class="tp-progress-label">Paragraph 9 of 21</div>
+                <div class="tp-progress-bar"><div class="tp-progress-fill" style="width:42%"></div></div>
+                <p class="tp-para">The radio networks of the 1920s had initially resisted advertising. Their founders imagined a public good — a wireless newspaper. That dream lasted barely five years before sponsors moved in, and with them the jingle, the interruption, the thirty-second spot.</p>
+                <div class="tp-nav-row">
+                  <button class="tp-nav-btn">← Back</button>
+                  <span class="tp-nav-counter">¶ 9 / 21</span>
+                  <button class="tp-nav-btn primary">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mockup-hint">Hover to preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode 03: Sentence -->
+  <div class="feature-row reveal">
+    <div class="feature-text">
+      <p class="feature-num">Mode 03</p>
+      <h2>Sentence Mode — maximum focus, minimum friction.</h2>
+      <p>Dense academic papers, legal documents, technical writing — each sentence surfaces one at a time. Nothing gets skimmed past.</p>
+      <p>Smart splitting handles abbreviations (Dr., vs., etc.) without false breaks. Navigation works seamlessly across paragraph boundaries.</p>
+      <div class="feature-pills">
+        <span class="pill">One sentence at a time</span>
+        <span class="pill">Cross-paragraph nav</span>
+        <span class="pill">Smart splitting</span>
+        <span class="pill">Progress tracking</span>
+      </div>
+    </div>
+    <div class="feature-visual">
+      <!-- <img src="screenshots/sentence-mode.png" alt="Sentence Mode" /> -->
+      <div class="mockup-container">
+        <div class="mockup-stages">
+          <div class="mockup-stage mockup-stage-visual">
+            <div class="mini-reader">
+              <div class="mini-toolbar">
+                <span class="mini-title">The Attention Merchants — Tim Wu</span>
+                <span class="mini-mode-btn">Full</span><span class="mini-mode-btn">Para</span><span class="mini-mode-btn active">Sent</span><span class="mini-mode-btn study">Study</span>
+              </div>
+              <div class="mini-body">
+                <div class="mini-progress-label">Para 4/21 · Sentence 3/6</div>
+                <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:68%"></div></div>
+                <div style="height:14px"></div>
+                <div class="ml dark" style="width:100%;height:10px;"></div>
+                <div class="ml dark" style="width:72%;height:10px;"></div>
+                <div style="height:14px"></div>
+                <div class="mini-nav-row">
+                  <button class="mini-nav-btn">← Back</button>
+                  <span class="mini-nav-counter">S 3 / 6</span>
+                  <button class="mini-nav-btn primary">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-stage mockup-stage-text">
+            <div class="text-preview">
+              <div class="text-preview-toolbar">
+                <span class="tp-title">The Attention Merchants — Tim Wu</span>
+                <span class="tp-btn">Full</span><span class="tp-btn">Para</span><span class="tp-btn active">Sent</span><span class="tp-btn study">Study</span>
+              </div>
+              <div class="text-preview-body">
+                <div class="tp-progress-label">Para 4/21 · Sentence 3 of 6</div>
+                <div class="tp-progress-bar"><div class="tp-progress-fill" style="width:68%"></div></div>
+                <div style="height:12px"></div>
+                <p class="tp-para" style="font-size:12.5px;line-height:1.75;color:#1a1a1a;">Television did not invent the interruption, but it perfected it — turning the commercial break into a ritual so familiar that viewers ceased to notice the intrusion at all.</p>
+                <div class="tp-nav-row" style="margin-top:14px">
+                  <button class="tp-nav-btn">← Back</button>
+                  <span class="tp-nav-counter">S 3 / 6</span>
+                  <button class="tp-nav-btn primary">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mockup-hint">Hover to preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode 04: Study — full-width two-phase layout -->
+  <section class="study-section reveal" aria-label="Study Mode">
+    <div class="study-section-header">
+      <p class="feature-num">Mode 04</p>
+      <h2>Study Mode — all three modes, with a learning layer on top.</h2>
+      <p>Study Mode isn't separate from Full, Paragraph, and Sentence — it wraps around them. You still read the same way, but with two structured phases that help you actually retain what you read.</p>
+    </div>
+
+    <div class="study-phase-cards">
+
+      <!-- Phase 1: Skim -->
+      <div class="study-phase-card">
+        <!-- Crossfade mockup: visual → text on hover -->
+        <div class="mockup-stages spc-stages">
+          <!-- Visual: line art -->
+          <div class="mockup-stage mockup-stage-visual">
+            <div class="spc-shell">
+              <div class="spc-toolbar">
+                <span class="spc-title">The Attention Merchants — Tim Wu</span>
+                <span class="spc-btn">Full</span><span class="spc-btn">Para</span><span class="spc-btn">Sent</span><span class="spc-btn study-active">Study</span>
+              </div>
+              <div class="spc-body">
+                <div class="spc-pill skim-pill">Skim</div>
+                <div class="spc-para">
+                  <div class="spc-line full dark"></div>
+                  <div class="spc-line w72 dim"></div>
+                  <div class="spc-line full dim"></div>
+                  <div class="spc-line w55 dim"></div>
+                </div>
+                <div class="spc-para">
+                  <div class="spc-line w88 dark"></div>
+                  <div class="spc-line full dim"></div>
+                  <div class="spc-line w60 dim"></div>
+                </div>
+                <div class="spc-para">
+                  <div class="spc-line w80 dark"></div>
+                  <div class="spc-line full dim"></div>
+                  <div class="spc-line w65 dim"></div>
+                </div>
+                <div class="spc-para">
+                  <div class="spc-line full dark"></div>
+                  <div class="spc-line w70 dim"></div>
+                </div>
+                <div class="spc-hint">scroll to navigate · hover to peek</div>
+              </div>
+            </div>
+          </div>
+          <!-- Text: actual prose -->
+          <div class="mockup-stage mockup-stage-text">
+            <div class="spc-shell">
+              <div class="spc-toolbar">
+                <span class="spc-title">The Attention Merchants — Tim Wu</span>
+                <span class="spc-btn">Full</span><span class="spc-btn">Para</span><span class="spc-btn">Sent</span><span class="spc-btn study-active">Study</span>
+              </div>
+              <div class="spc-body">
+                <div class="spc-pill skim-pill">Skim</div>
+                <div class="spc-text-para">
+                  <span class="spc-text-first">In the beginning, there was space to think.</span>
+                  <span class="spc-text-rest"> The newspapers of the early nineteenth century carried almost no advertising — dense with text, subsidized by political parties.</span>
+                </div>
+                <div class="spc-text-para">
+                  <span class="spc-text-first">It was Benjamin Day who first saw what attention was worth.</span>
+                  <span class="spc-text-rest"> In 1833 he slashed the price of the Sun to a penny and recouped the loss by selling readers to advertisers.</span>
+                </div>
+                <div class="spc-text-para">
+                  <span class="spc-text-first">Television did not invent the interruption, but it perfected it.</span>
+                  <span class="spc-text-rest"> The commercial break became a ritual so familiar that viewers ceased to notice.</span>
+                </div>
+                <div class="spc-hint">scroll to navigate · hover to peek</div>
+              </div>
+            </div>
+          </div>
+          <p class="mockup-hint">Hover to preview</p>
+        </div>
+        <div class="study-phase-card-text">
+          <div class="study-phase-badge skim-badge">Phase 1 — Skim</div>
+          <h3>Get the shape of the article first.</h3>
+          <p>Only the first sentence of each paragraph is fully visible — the rest fades away. You can see where the article goes before you commit to reading it.</p>
+          <ul class="study-phase-list">
+            <li><span class="spl-icon">↕</span> scroll naturally between paragraphs</li>
+            <li><span class="spl-icon">👁</span> hover any faded text to peek at it</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Divider arrow -->
+      <div class="study-phase-arrow">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>then</span>
+      </div>
+
+      <!-- Phase 2: Thorough -->
+      <div class="study-phase-card">
+        <div class="mockup-stages spc-stages">
+          <!-- Visual: line art -->
+          <div class="mockup-stage mockup-stage-visual">
+            <div class="spc-shell">
+              <div class="spc-toolbar">
+                <span class="spc-title">The Attention Merchants — Tim Wu</span>
+                <span class="spc-btn">Full</span><span class="spc-btn">Para</span><span class="spc-btn">Sent</span><span class="spc-btn study-active">Study</span>
+              </div>
+              <div class="spc-body">
+                <div class="spc-pill thorough-pill">Thorough</div>
+                <div class="spc-para dim-para">
+                  <div class="spc-line full"></div>
+                  <div class="spc-line w80"></div>
+                  <div class="spc-line w60"></div>
+                </div>
+                <div class="spc-para focused-para">
+                  <div class="spc-line full dark"></div>
+                  <div class="spc-line full dark"></div>
+                  <div class="spc-line w72 dark"></div>
+                </div>
+                <div class="spc-para dim-para">
+                  <div class="spc-line full"></div>
+                  <div class="spc-line w88"></div>
+                  <div class="spc-line w55"></div>
+                </div>
+                <div class="spc-para dim-para">
+                  <div class="spc-line w80"></div>
+                  <div class="spc-line full"></div>
+                  <div class="spc-line w65"></div>
+                </div>
+                <div class="spc-hint">scroll to move focus · <span class="spc-key">↑</span><span class="spc-key">↓</span> to step</div>
+              </div>
+            </div>
+          </div>
+          <!-- Text: actual prose -->
+          <div class="mockup-stage mockup-stage-text">
+            <div class="spc-shell">
+              <div class="spc-toolbar">
+                <span class="spc-title">The Attention Merchants — Tim Wu</span>
+                <span class="spc-btn">Full</span><span class="spc-btn">Para</span><span class="spc-btn">Sent</span><span class="spc-btn study-active">Study</span>
+              </div>
+              <div class="spc-body">
+                <div class="spc-pill thorough-pill">Thorough</div>
+                <p class="spc-text-dim">In the beginning, there was space to think. The newspapers of the early nineteenth century carried almost no advertising.</p>
+                <p class="spc-text-focus">It was Benjamin Day who first saw what attention was worth. In 1833 he slashed the price of the Sun to a penny and recouped the loss by selling readers to advertisers. The model stuck.</p>
+                <p class="spc-text-dim">Television did not invent the interruption, but it perfected it — turning the break into a ritual so familiar viewers ceased to notice.</p>
+                <div class="spc-hint">scroll to move focus · <span class="spc-key">↑</span><span class="spc-key">↓</span> to step</div>
+              </div>
+            </div>
+          </div>
+          <p class="mockup-hint">Hover to preview</p>
+        </div>
+        <div class="study-phase-card-text">
+          <div class="study-phase-badge thorough-badge">Phase 2 — Thorough</div>
+          <h3>Like Full Mode — but only one paragraph is readable at a time.</h3>
+          <p>The whole article stays on screen, but only one paragraph is in full view. Everything else fades. Scroll and the focus moves with you — or use the arrow keys to step through deliberately.</p>
+          <ul class="study-phase-list">
+            <li><span class="spl-icon">↕</span> scroll — focus follows automatically</li>
+            <li><span class="spl-key">↑ ↓</span> jump paragraph by paragraph</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- Notes -->
+<section class="notes-section" id="notes" aria-label="Notes panel">
+  <div class="container">
+    <div class="notes-inner">
+      <div class="notes-text reveal">
+        <span class="chip">Notes Panel</span>
+        <h2>Your thoughts, anchored to the text.</h2>
+        <p>A floating notes panel lives alongside the reader — one tap to open, invisible when you don't need it. Write a note and it anchors to the paragraph you were reading.</p>
+        <p>Export as a clean <code style="font-size:13px;background:var(--surface);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">.txt</code> file — note, source paragraph, timestamp. No app. No account.</p>
+        <div class="notes-detail">
+          <div class="notes-item">
+            <div class="notes-item-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+            <div class="notes-item-body"><h4>Paragraph-linked annotations</h4><p>Notes snap to the paragraph you were reading. Context travels with them.</p></div>
+          </div>
+          <div class="notes-item">
+            <div class="notes-item-icon"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 8h4M8 6v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+            <div class="notes-item-body"><h4>Floating, non-blocking</h4><p>Toggle open or closed without losing your place.</p></div>
+          </div>
+          <div class="notes-item">
+            <div class="notes-item-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M4 12l8-8M9 4h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="notes-item-body"><h4>Export as plain text</h4><p>Clean, portable, yours. No formatting lock-in.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal" style="transition-delay:.1s">
+        <div class="notes-panel-mock">
+          <div class="npm-header">
+            <div class="npm-title"><svg viewBox="0 0 14 14" fill="none" width="13" height="13" style="color:var(--accent)"><path d="M2 2h10v10H2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 5h6M4 7.5h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Notes <span class="npm-badge">3</span></div>
+            <div class="npm-actions"><span class="npm-btn">Export .txt</span><span class="npm-btn">✕</span></div>
+          </div>
+          <div class="npm-entry">
+            <div class="npm-ref">Para 2</div>
+            <div class="npm-quote">"The map is not the territory, but a good map changes how you navigate it."</div>
+            <div class="npm-text">Core tension — representation vs. reality. Connect to Korzybski.</div>
+            <div class="npm-meta">3 min ago</div>
+          </div>
+          <div class="npm-entry">
+            <div class="npm-ref">Para 7</div>
+            <div class="npm-quote">"Institutions resist compression. What compresses is interpretation."</div>
+            <div class="npm-text">Strong claim. Find counterexamples before citing this.</div>
+            <div class="npm-meta">9 min ago</div>
+          </div>
+          <div class="npm-entry">
+            <div class="npm-ref">Para 11</div>
+            <div class="npm-text">Circular ending — returns to opening metaphor. Ties back to ¶7.</div>
+            <div class="npm-meta">14 min ago</div>
+          </div>
+          <div class="npm-input-area">
+            <div class="npm-textarea-mock">Add a note...</div>
+            <div class="npm-footer"><span class="npm-link-btn">✓ Para 11 linked</span><span class="npm-save-btn">Add</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Themes -->
+<section class="themes-section" id="themes" aria-label="Themes">
+  <div class="container">
+    <div class="reveal">
+      <span class="chip">Themes</span>
+      <h2>Four environments. Your choice.</h2>
+      <p class="lead">Switch in settings. Liminal remembers your preference every session.</p>
+    </div>
+    <div class="themes-grid reveal" style="transition-delay:.1s">
+      <div class="theme-card t-warm">
+        <div class="theme-preview"><div class="theme-preview-toolbar"><span class="theme-preview-title">Article</span><span class="theme-preview-btn active">Full</span><span class="theme-preview-btn">Para</span></div><div class="ttl tw100"></div><div class="ttl tw78"></div><div class="ttl tw100"></div><div class="ttl tw55"></div><div class="theme-progress"><div class="theme-progress-fill"></div></div></div>
+        <div class="theme-meta"><div class="theme-name">Paper</div><div class="theme-desc">#fffef9 · Warm off-white, the default</div></div>
+      </div>
+      <div class="theme-card t-white">
+        <div class="theme-preview"><div class="theme-preview-toolbar"><span class="theme-preview-title">Article</span><span class="theme-preview-btn active">Full</span><span class="theme-preview-btn">Para</span></div><div class="ttl tw100"></div><div class="ttl tw78"></div><div class="ttl tw100"></div><div class="ttl tw55"></div><div class="theme-progress"><div class="theme-progress-fill"></div></div></div>
+        <div class="theme-meta"><div class="theme-name">Pure White</div><div class="theme-desc">#ffffff · Crisp contrast</div></div>
+      </div>
+      <div class="theme-card t-green">
+        <div class="theme-preview"><div class="theme-preview-toolbar"><span class="theme-preview-title">Article</span><span class="theme-preview-btn active">Full</span><span class="theme-preview-btn">Para</span></div><div class="ttl tw100"></div><div class="ttl tw78"></div><div class="ttl tw100"></div><div class="ttl tw55"></div><div class="theme-progress"><div class="theme-progress-fill"></div></div></div>
+        <div class="theme-meta"><div class="theme-name">Green Tint</div><div class="theme-desc">#f0f7f0 · Calm, long sessions</div></div>
+      </div>
+      <div class="theme-card t-dark">
+        <div class="theme-preview"><div class="theme-preview-toolbar"><span class="theme-preview-title">Article</span><span class="theme-preview-btn active">Full</span><span class="theme-preview-btn">Para</span></div><div class="ttl tw100"></div><div class="ttl tw78"></div><div class="ttl tw100"></div><div class="ttl tw55"></div><div class="theme-progress"><div class="theme-progress-fill"></div></div></div>
+        <div class="theme-meta"><div class="theme-name">Dark</div><div class="theme-desc">#1a1a1a · Late nights</div></div>
+      </div>
+    </div>
+    <div class="settings-row reveal" style="transition-delay:.15s">
+      <div class="settings-row-text">
+        <h3>Personalize it further.</h3>
+        <p>Font size (14–28px) and line height (1.4–2.4) adjustable in the settings panel. Set once — remembered via Chrome's synced storage.</p>
+      </div>
+      <div class="settings-controls">
+        <div class="setting-item"><span class="setting-label">Font size</span><div class="setting-track"><div class="setting-fill" style="width:35%"></div><div class="setting-thumb" style="left:35%"></div></div><span class="setting-value">18px</span></div>
+        <div class="setting-item"><span class="setting-label">Line height</span><div class="setting-track"><div class="setting-fill" style="width:44%"></div><div class="setting-thumb" style="left:44%"></div></div><span class="setting-value">1.8</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer CTA -->
+<section class="footer-cta" aria-label="Call to action">
+  <div class="container">
+    <div class="reveal">
+      <h2>Stop fighting the page.<br>Start reading it.</h2>
+      <p>Free, open-source, and thirty seconds to install.</p>
+      <div class="footer-cta-actions">
+        <a href="https://chromewebstore.google.com/detail/lneiindanebcfiodkaiminhjdjdnadfa?utm_source=item-share-cb" target="_blank" class="btn-primary" style="font-size:15px;padding:15px 28px;">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="4" fill="white"/><path d="M12 8h8.66a10 10 0 1 0-16.8 9.26L8 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/><path d="M7.86 17.26a10 10 0 0 0 12.8-5.26H12l-4.14 5.26z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Add to Chrome — it's free
+        </a>
+        <a href="https://github.com/yihui-Xiong/liminal-reader" target="_blank" class="github-link">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View source on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer role="contentinfo">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="icon128.png" alt="" />
+        Liminal Reader — A better way to read the web.
+      </div>
+      <ul class="footer-links" role="list" aria-label="Footer navigation">
+        <li><a href="#features">Modes</a></li><li><a href="#notes">Notes</a></li><li><a href="#themes">Themes</a></li><li><a href="https://github.com/yihui-Xiong/liminal-reader" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(
+    entries => entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+    }),
+    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+  );
+  reveals.forEach(el => obs.observe(el));
+  document.querySelectorAll('.hero .reveal').forEach((el, i) =>
+    setTimeout(() => el.classList.add('visible'), i * 80)
+  );
+
+  // Touch: tap mockups to toggle visual/text (since hover doesn't fire on mobile)
+  document.querySelectorAll('.mockup-stages').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('touched'));
+  });
+
+  // Touch: tap hero to trigger animation
+  const heroScreen = document.querySelector('.browser-screen');
+  if (heroScreen) {
+    heroScreen.addEventListener('click', () => heroScreen.classList.toggle('touched'));
+  }
+
+  // Announce to screen readers when mockup state changes
+  document.querySelectorAll('.mockup-stages').forEach(el => {
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', 'Toggle between visual and text preview');
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.classList.toggle('touched'); }
+    });
+  });
+</script>
+</body>
+</html>
